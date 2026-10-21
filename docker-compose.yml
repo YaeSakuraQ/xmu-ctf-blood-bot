@@ -1,0 +1,44 @@
+services:
+  bot:
+    build: .
+    image: ctf-blood-bot:latest
+    container_name: ctf-blood-bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      HOST: 0.0.0.0
+      PORT: "8080"
+    volumes:
+      - ./data/bot:/app/data
+    expose:
+      - "8080"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import socket; socket.create_connection(('127.0.0.1', 8080), 2).close()"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  napcat:
+    image: mlikiowa/napcat-docker:latest
+    container_name: ctf-napcat
+    restart: unless-stopped
+    depends_on:
+      bot:
+        condition: service_healthy
+    environment:
+      MODE: reverse_ws
+      ONEBOT_URL: ws://bot:8080/onebot/v11/ws
+      WEBUI_TOKEN: ${NAPCAT_TOKEN:?set NAPCAT_TOKEN in .env}
+      TZ: Asia/Shanghai
+    ports:
+      # WebUI 只监听本机；远程服务器请用 SSH 隧道访问
+      - "127.0.0.1:6099:6099"
+    volumes:
+      - ./data/napcat/qq:/app/.config/QQ
+      - ./data/napcat/config:/app/napcat/config

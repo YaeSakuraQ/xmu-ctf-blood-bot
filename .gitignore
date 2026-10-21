@@ -1,0 +1,26 @@
+# secrets / runtime
+.env
+.env.*
+!.env.example
+data/
+*.sqlite3
+*.db
+*.db-wal
+*.db-shm
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+
+# logs / OS
+logs/
+*.log
+.DS_Store
+.idea/
+
+# local probe output
+*.out
