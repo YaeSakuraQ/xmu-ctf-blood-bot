@@ -11,6 +11,7 @@ services:
       PORT: "8080"
     volumes:
       - ./data/bot:/app/data
+      - ./.env:/app/.env:ro
     expose:
       - "8080"
     healthcheck:

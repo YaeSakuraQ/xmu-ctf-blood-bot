@@ -121,10 +121,10 @@ class Settings:
         Path(self.db_path).expanduser().resolve().parent.mkdir(parents=True, exist_ok=True)
 
 
-def load_settings() -> Settings:
-    """Load settings from ``.env`` + environment variables."""
+def load_settings(*, reload_file: bool = False) -> Settings:
+    """Load settings, optionally replacing existing values from ``.env``."""
 
-    load_dotenv(override=False)
+    load_dotenv(override=reload_file)
     settings = Settings(
         base_url=_get("CTF_BASE_URL", required=True).rstrip("/"),
         race_id=_get("CTF_RACE_ID", required=True),

@@ -21,7 +21,7 @@ fi
 get_env() {
     local key="$1"
     grep -E "^${key}=" .env | tail -n 1 | cut -d= -f2- \
-        | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//"
+        | sed -e 's/\r$//' -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//"
 }
 
 missing=0
@@ -79,11 +79,26 @@ else
     say "保留已有 NapCat 配置：$NAPCAT_CONFIG（如需重建请先删除）"
 fi
 
-say "拉取 NapCat 镜像..."
-docker compose pull napcat || true
+if compgen -G 'data/napcat/config/onebot11_*.json' >/dev/null; then
+    python3 scripts/sync_napcat_config.py
+fi
+
+if docker image inspect mlikiowa/napcat-docker:latest >/dev/null 2>&1; then
+    say "使用本地 NapCat 镜像"
+else
+    say "拉取 NapCat 镜像..."
+    docker compose pull napcat
+fi
 
 say "构建并启动容器..."
-docker compose up -d --build
+if ! docker compose up -d --build; then
+    if ! docker image inspect ctf-blood-bot:latest >/dev/null 2>&1; then
+        err "构建失败，且本地没有 bot 镜像；请检查 Docker Hub 网络后重试"
+        exit 1
+    fi
+    err "构建失败，改用本地已有镜像启动；本次代码修改可能尚未包含在镜像中"
+    docker compose up -d --no-build --pull never
+fi
 
 say "当前状态："
 docker compose ps
@@ -102,7 +117,8 @@ cat <<'EOF'
 
 常用命令：
   docker compose logs -f bot napcat   # 看日志
-  docker compose restart bot          # 改完 .env 后重启 bot
+  docker compose up -d --no-build     # 修改 .env 后重新创建容器
+  docker compose restart bot          # 只重启现有容器
   docker compose down                 # 停止（保留 data/）
 ============================================================
 EOF

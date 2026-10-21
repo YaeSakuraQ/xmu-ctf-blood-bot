@@ -148,10 +148,13 @@ http://<platform>/page/ct/public/ctf/screen/{race_id}/{viewer_key}
 | `/ctf rank [N]` | 群/私聊 | 实时前 N 名（默认 10） |
 | `/ctf blood [关键词]` | 群/私聊 | 当前血况，可按题目/方向过滤 |
 | `/ctf test` | 管理员 | 往群里发一条测试血报 |
-| `/ctf reload` | 管理员 | 重载 `.env`（换 key/群号后不用重启容器） |
+| `/ctf reload` | 管理员 | 重载 `.env` 中的 CTF 配置（换 key/群号后不用重启容器） |
 | `/ctf help` | 群/私聊 | 帮助 |
 
 > 群聊里只响应 `CTF_GROUP_ID` 对应的群；私聊不受限。
+> 更换群号时，先在旧群或私聊发送 `/ctf reload`。`SUPERUSERS`、`ONEBOT_ACCESS_TOKEN`、`NAPCAT_TOKEN` 等连接配置需要执行 `docker compose up -d --no-build` 重新创建容器；OneBot token 还需同步 NapCat 账号配置。
+
+2026 年 10 月 24 日 13:30（北京时间），机器人会向目标群发送一次新题上线通知，列出当天新增的 14 道题。通知只对当前新生赛生效；若当时发送失败，会在比赛结束前重试。成功发送的状态保存在 `data/bot`，重启不会重复发送。
 
 ---
 
@@ -252,7 +255,7 @@ deploy.sh                  一键部署
 A: 看 `docker compose logs -f bot napcat`。常见原因：NapCat 没登录、WS token 不一致、机器人不在群/被禁言、`CTF_GROUP_ID` 不对。
 
 **Q: 一直提示“登录凭证失效/无操作权限”？**
-A: `viewer_key` 不对或已轮换。从后台大屏链接重新复制，改 `.env` 后 `/ctf reload` 或 `docker compose restart bot`。
+A: `viewer_key` 不对或已轮换。从后台大屏链接重新复制，改 `.env` 后发送 `/ctf reload`，或执行 `docker compose up -d --no-build bot`。
 
 **Q: 有解题但没播报？**
 A: 确认赛事 `reward_mode=1`；`/ctf status` 看 `reward_mode` 告警。`reward_mode=0` 时平台不记录血序，机器人不会误报。
@@ -264,7 +267,7 @@ A: 设 `CTF_CATCHUP_MODE=silent` 后重启；或等它按 1 条/秒发完。
 A: 用专用小号、固定出口 IP、低频发送、不要 @全体；准备备用号。协议端方案有账号风险，这是已知代价。
 
 **Q: 换赛事/换 key？**
-A: 改 `.env` → `/ctf reload`（管理员）或 `docker compose restart bot`。
+A: 改 `.env` → `/ctf reload`（管理员）或 `docker compose up -d --no-build bot`。
 
 ---
 

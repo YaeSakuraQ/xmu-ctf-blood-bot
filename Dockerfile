@@ -13,7 +13,16 @@ RUN apt-get update \
 WORKDIR /app
 
 COPY requirements.txt .
-RUN pip install -r requirements.txt
+# Retry the whole command too: a truncated index JSON response is not covered
+# by pip's connection retries.
+RUN set -eu; \
+    attempt=1; \
+    until python -m pip install --timeout 120 --retries 5 -r requirements.txt; do \
+        if [ "$attempt" -ge 3 ]; then exit 1; fi; \
+        echo "Dependency installation failed; retrying ($attempt/3)..." >&2; \
+        attempt=$((attempt + 1)); \
+        sleep 5; \
+    done
 
 COPY bot.py .
 COPY ctfblood ./ctfblood

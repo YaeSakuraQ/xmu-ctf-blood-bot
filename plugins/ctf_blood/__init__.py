@@ -17,6 +17,7 @@ from nonebot.log import logger as nb_logger
 from nonebot.plugin import PluginMetadata
 
 from ctfblood.api import CTFClient
+from ctfblood.announcement import send_new_challenges_notice
 from ctfblood.config import Settings, load_settings
 from ctfblood.service import BloodService
 from ctfblood.store import Store
@@ -105,10 +106,29 @@ def _add_jobs(service: BloodService, settings: Settings) -> None:
         coalesce=True,
         misfire_grace_time=5,
     )
+    scheduler.add_job(
+        _new_challenges_job,
+        "interval",
+        seconds=15,
+        id="ctf_new_challenges_notice",
+        replace_existing=True,
+        max_instances=1,
+        coalesce=True,
+    )
+
+
+async def _new_challenges_job() -> None:
+    service = get_service()
+    await send_new_challenges_notice(
+        race_id=service.settings.race_id,
+        store=service.store,
+        notifier=service.notifier,
+        dry_run=service.settings.dry_run,
+    )
 
 
 def _remove_jobs() -> None:
-    for job_id in ("ctf_blood_poll", "ctf_blood_send"):
+    for job_id in ("ctf_blood_poll", "ctf_blood_send", "ctf_new_challenges_notice"):
         if scheduler.get_job(job_id):
             scheduler.remove_job(job_id)
 
@@ -155,7 +175,7 @@ async def reload_service() -> str:
 
     global _settings, _service, _store
 
-    new_settings = load_settings()
+    new_settings = load_settings(reload_file=True)
     new_service, new_store = await _build(new_settings)
 
     old_service = _service
